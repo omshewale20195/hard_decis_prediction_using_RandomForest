@@ -2,21 +2,22 @@ from flask import Flask, render_template, request
 import numpy as np
 import pickle
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Load your pre-trained model (ensure "model.pkl" exists in the same directory)
-model = pickle.load(open("model.pkl", "rb"))
+# Load model
+try:
+    model = pickle.load(open("model.pkl", "rb"))
+except Exception as e:
+    print(f"Error loading model: {e}")
 
 @app.route("/")
 def home():
-    # On loading the page, no prediction is passed
     return render_template("index.html", prediction_text=None)
 
 @app.route("/process", methods=["POST"])
 def process_form():
     try:
-        # Collect all inputs from the form
+        # Collect inputs
         age = int(request.form["age"])
         gender = int(request.form["sex"])
         cp = int(request.form["cp"])
@@ -31,14 +32,16 @@ def process_form():
         ca = int(request.form["ca"])
         thal = int(request.form["thal"])
 
-        # Prepare input array for the model
-        input_features = np.array([[age, gender, cp, trestbps, chol, fbs, restecg,
-                                       thalach, exang, oldpeak, slope, ca, thal]])
+        # Log input
+        print(f"Inputs: Age={age}, Gender={gender}, CP={cp}, Trestbps={trestbps}, Chol={chol}, FBS={fbs}, RestECG={restecg}, Thalach={thalach}, Exang={exang}, Oldpeak={oldpeak}, Slope={slope}, CA={ca}, Thal={thal}")
 
-        # Predict and log input and prediction
+        # Prepare features
+        input_features = np.array([[age, gender, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]])
+        print(f"Input Features: {input_features}")
+
+        # Prediction
         prediction = model.predict(input_features)
-        print(f"Input: {input_features}")
-        print(f"Prediction: {prediction[0]}")  # Log prediction value
+        print(f"Prediction: {prediction[0]}")
 
         prediction_text = (
             "Heart Disease Risk: Low - You seem to be in good health!"
@@ -47,5 +50,8 @@ def process_form():
         )
 
         return render_template("index.html", prediction_text=prediction_text)
+
     except Exception as e:
-        return render_template("index.html", prediction_text=f"An error occurred: {e}")
+        import traceback
+        print(f"Error: {traceback.format_exc()}")
+        return render_template("index.html", prediction_text=f"Error: {str(e)}")
